@@ -54,6 +54,8 @@ int main(int argc, char* argv[])
 		pLog->Output(version);
 
 		PolicyTabConv ptc(cfg);
+		ptc.Init();
+		ptc.Do();
 	}
 	catch ( Exception& ex )
 	{
