@@ -3,12 +3,12 @@
 #include "log.h"
 #include "def.h"
 #include "helper.h"
-#include "dbi.h"
+#include "tabdb.h"
 
 PolicyTabConv::PolicyTabConv(Config& cfg)
 :m_pLog(Log::Instance())
 ,m_pCfg(&cfg)
-,m_pDBI(NULL)
+,m_pTabDB(NULL)
 {
 }
 
@@ -23,6 +23,7 @@ void PolicyTabConv::Init() throw(Exception)
 	m_pCfg->RegisterItem("DATABASE", "SVR_NAME");
 	m_pCfg->RegisterItem("TABLES", "IO_CHANNEL");
 	m_pCfg->RegisterItem("TABLES", "DEB_POLICY");
+	m_pCfg->RegisterItem("CONVERTION", "INT_GROUP_ID");
 	m_pCfg->RegisterItem("CONVERTION", "VC_OTHER_CFG");
 	m_pCfg->RegisterItem("CONVERTION", "VC_TABLE");
 	m_pCfg->RegisterItem("CONVERTION", "VC_PATH");
@@ -32,10 +33,10 @@ void PolicyTabConv::Init() throw(Exception)
 
 	std::string db_name = m_pCfg->GetCfgValue("DATABASE", "DB_NAME");
 	std::string svr_name = m_pCfg->GetCfgValue("DATABASE", "SVR_NAME");
-
-	m_sTabIOChann = m_pCfg->GetCfgValue("TABLES", "IO_CHANNEL");
-	m_sTabDebPolicy = m_pCfg->GetCfgValue("TABLES", "DEB_POLICY");
-	m_sOtherCfg = m_pCfg->GetCfgValue("CONVERTION", "VC_OTHER_CFG");
+	std::string io_channel = m_pCfg->GetCfgValue("TABLES", "IO_CHANNEL");
+	std::string deb_policy = m_pCfg->GetCfgValue("TABLES", "DEB_POLICY");
+	long group_id = (long)m_pCfg->GetCfgLongVal("CONVERTION", "INT_GROUP_ID");
+	std::string other_cfg = m_pCfg->GetCfgValue("CONVERTION", "VC_OTHER_CFG");
 
 	InitMapConvertor("VC_TABLE", m_mTable);
 	InitMapConvertor("VC_PATH", m_mPath);
@@ -43,33 +44,62 @@ void PolicyTabConv::Init() throw(Exception)
 
 	Release();
 
-	m_pDBI = new DBI;
+	m_pTabDB = new TabDB;
 
-	if ( m_pDBI->dbi_init("oracle", db_name.c_str(), svr_name.c_str()) != DBI_SUCCESS )
-	{
-		throw Exception(PTC_INIT_FAIL, "DBI init failed: %s [FILE:%s, LINE:%d]", m_pDBI->dbi_error(), __FILE__, __LINE__);
-	}
-	if ( m_pDBI->dbi_connect() != DBI_SUCCESS )
-	{
-		throw Exception(PTC_INIT_FAIL, "DBI connect failed: %s [DB_NAME=%s, SVR_NAME=%s] [FILE:%s, LINE:%d]", m_pDBI->dbi_error(), db_name.c_str(), svr_name.c_str(), __FILE__, __LINE__);
-	}
+	m_pTabDB->SetIOChannel(io_channel);
+	m_pTabDB->SetDebPolicy(deb_policy);
+	m_pTabDB->SetGroupID(group_id);
+	m_pTabDB->SetOtherCfg(other_cfg);
 
+	m_pTabDB->Connect(db_name, svr_name);
 	m_pLog->Output("Connect database OK.");
 }
 
 void PolicyTabConv::Do() throw(Exception)
 {
+	m_pTabDB->PrepareSql();
+
+	std::vector<ST_IOChannel> vc_io;
+	m_pTabDB->SelectIOChannel(vc_io);
+
+	int size = vc_io.size();
+	m_pLog->Output("IO_CHANNEL: size = %d", size);
+	for ( int i = 0; i < size; ++i )
+	{
+		ST_IOChannel& si = vc_io[i];
+		m_pLog->Output("%d) channel_id=%d, type_id=%d, extend=%s, group_id=%d", i+1, si.channel_id, si.type_id, si.type_ex, si.group_id);
+	}
+
+	std::vector<ST_DebPolicy> vc_deb;
+	m_pTabDB->SelectDebPolicy(vc_deb);
+
+	/*
+	int channel_id;
+	char table[64];
+	char path[256];
+	char commit_path[256];
+	int policy;
+	int chann_id1;
+	int chann_id2;
+	char other_cfg[64];
+	*/
+	size = vc_deb.size();
+	m_pLog->Output("DEB_POLICY: size = %d", size);
+	for ( int i = 0; i < size; ++i )
+	{
+		ST_DebPolicy& sd = vc_deb[i];
+		m_pLog->Output("%d) channel_id=%d, table=%s, path=%s, commit_path=%s, policy=%d, channID1=%d, channID2=%d, other_cfg=%s", i+1, sd.channel_id, sd.table, sd.path, sd.commit_path, sd.policy, sd.chann_id1, sd.chann_id2, sd.other_cfg);
+	}
+
+	m_pTabDB->SqlFree();
 }
 
 void PolicyTabConv::Release()
 {
-	if ( m_pDBI != NULL )
+	if ( m_pTabDB != NULL )
 	{
-		m_pDBI->dbi_disconnect();
-		m_pLog->Output("Disconnect database.");
-
-		delete m_pDBI;
-		m_pDBI = NULL;
+		delete m_pTabDB;
+		m_pTabDB = NULL;
 	}
 }
 

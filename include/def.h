@@ -12,5 +12,16 @@
 #define CFG_ITEM_NOT_FOUND            (-200004)
 #define CFG_VALUE_INVALID             (-200005)
 
-#define PTC_INIT_FAIL                 (-300001)
+#define DB_INIT_FAIL                  (-300001)
+#define DB_CONNECT_FAIL               (-300002)
+#define DB_DISCONNECT_FAIL            (-300003)
+#define DB_QUERY_INIT_FAIL            (-300004)
+#define DB_PREPARE_FAIL               (-300005)
+#define DB_FREE_SQL_FAIL              (-300006)
+#define DB_BEGIN_FAIL                 (-300007)
+#define DB_COMMIT_FAIL                (-300008)
+#define DB_CURSOR_FAIL                (-300009)
+#define DB_FETCH_FAIL                 (-300010)
+
+#define PTC_INIT_FAIL                 (-400001)
 

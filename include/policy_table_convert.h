@@ -6,7 +6,7 @@
 
 class Log;
 class Config;
-class DBI;
+class TabDB;
 
 typedef std::map<std::string, std::string> MAP_STR2;
 typedef MAP_STR2::iterator MS2_IT;
@@ -33,13 +33,9 @@ private:
 private:
 	Log*		m_pLog;
 	Config*		m_pCfg;
-	DBI*		m_pDBI;
+	TabDB*		m_pTabDB;
 
 private:
-	std::string		m_sTabIOChann;
-	std::string		m_sTabDebPolicy;
-	std::string		m_sOtherCfg;
-
 	MAP_STR2		m_mTable;
 	MAP_STR2		m_mPath;
 	MAP_STR2		m_mCommitPath;
