@@ -15,8 +15,6 @@ public:
 public:
 	void SetIOChannel(const std::string& io_channel);
 	void SetDebPolicy(const std::string& deb_policy);
-	void SetGroupID(long group_id);
-	void SetOtherCfg(const std::string& other_cfg);
 
 public:
 	void Connect(const std::string& db_name, const std::string& svr_name) throw(Exception);
@@ -48,7 +46,5 @@ private:
 
 	std::string		m_sTabIOChann;
 	std::string		m_sTabDebPolicy;
-	long			m_nGroupID;
-	std::string		m_sOtherCfg;
 };
 

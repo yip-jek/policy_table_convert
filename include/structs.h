@@ -104,3 +104,42 @@ public:
 	char other_cfg[64];
 };
 
+struct ST_ONChannel
+{
+public:
+	ST_ONChannel(): type_id(0), old_channel_id(0), new_channel_id(0)
+	{ memset(type_ex, 0, sizeof(type_ex)); }
+	ST_ONChannel(const ST_ONChannel& onc): type_id(onc.type_id), old_channel_id(onc.old_channel_id), new_channel_id(onc.new_channel_id)
+	{ strcpy(this->type_ex, onc.type_ex); }
+
+	const ST_ONChannel& operator = (const ST_ONChannel& onc)
+	{
+		if ( this != &onc )
+		{
+			this->type_id        = onc.type_id;
+			this->old_channel_id = onc.old_channel_id;
+			this->new_channel_id = onc.new_channel_id;
+
+			strcpy(this->type_ex, onc.type_ex);
+		}
+
+		return *this;
+	}
+
+public:
+	void Init()
+	{
+		type_id        = 0;
+		old_channel_id = 0;
+		new_channel_id = 0;
+
+		memset(type_ex, 0, sizeof(type_ex));
+	}
+
+public:
+	int type_id;
+	char type_ex[32];
+	int old_channel_id;
+	int new_channel_id;
+};
+

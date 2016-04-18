@@ -9,7 +9,6 @@ TabDB::TabDB()
 ,m_pQuerySel_deb(NULL)
 ,m_pQueryUpd_deb(NULL)
 ,m_pQueryIns_deb(NULL)
-,m_nGroupID(0)
 {
 }
 
@@ -26,16 +25,6 @@ void TabDB::SetIOChannel(const std::string& io_channel)
 void TabDB::SetDebPolicy(const std::string& deb_policy)
 {
 	m_sTabDebPolicy = deb_policy;
-}
-
-void TabDB::SetGroupID(long group_id)
-{
-	m_nGroupID = group_id;
-}
-
-void TabDB::SetOtherCfg(const std::string& other_cfg)
-{
-	m_sOtherCfg = other_cfg;
 }
 
 void TabDB::Connect(const std::string& db_name, const std::string& svr_name) throw(Exception)
@@ -272,6 +261,13 @@ void TabDB::Commit() throw(Exception)
 
 void TabDB::Release()
 {
+	SqlFree();
+
+	ReleaseQuery(m_pQuerySel_io);
+	ReleaseQuery(m_pQuerySel_deb);
+	ReleaseQuery(m_pQueryUpd_deb);
+	ReleaseQuery(m_pQueryIns_deb);
+
 	if ( m_pDBI != NULL )
 	{
 		if ( m_bConnected )
@@ -284,13 +280,6 @@ void TabDB::Release()
 		delete m_pDBI;
 		m_pDBI = NULL;
 	}
-
-	SqlFree();
-
-	ReleaseQuery(m_pQuerySel_io);
-	ReleaseQuery(m_pQuerySel_deb);
-	ReleaseQuery(m_pQueryUpd_deb);
-	ReleaseQuery(m_pQueryIns_deb);
 }
 
 void TabDB::ReleaseQuery(dbi_query_t*& p_query)

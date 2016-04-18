@@ -1,8 +1,10 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <map>
 #include "exception.h"
+#include "structs.h"
 
 class Log;
 class Config;
@@ -29,6 +31,7 @@ private:
 	void Release();
 	void InitMapConvertor(const std::string& name, MAP_STR2& m) throw(Exception);
 	bool SeparateStr(const std::string& src, std::string& left, std::string& right, bool upper);
+	void GetONChannel(std::vector<ST_IOChannel>& vc_io, std::map<int, ST_ONChannel>& m_onc);
 
 private:
 	Log*		m_pLog;
@@ -36,6 +39,8 @@ private:
 	TabDB*		m_pTabDB;
 
 private:
+	int				m_nGroupID;
+	std::string		m_sOtherCfg;
 	MAP_STR2		m_mTable;
 	MAP_STR2		m_mPath;
 	MAP_STR2		m_mCommitPath;

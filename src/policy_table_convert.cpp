@@ -35,8 +35,9 @@ void PolicyTabConv::Init() throw(Exception)
 	std::string svr_name = m_pCfg->GetCfgValue("DATABASE", "SVR_NAME");
 	std::string io_channel = m_pCfg->GetCfgValue("TABLES", "IO_CHANNEL");
 	std::string deb_policy = m_pCfg->GetCfgValue("TABLES", "DEB_POLICY");
-	long group_id = (long)m_pCfg->GetCfgLongVal("CONVERTION", "INT_GROUP_ID");
-	std::string other_cfg = m_pCfg->GetCfgValue("CONVERTION", "VC_OTHER_CFG");
+
+	m_nGroupID = (int)m_pCfg->GetCfgLongVal("CONVERTION", "INT_GROUP_ID");
+	m_sOtherCfg = m_pCfg->GetCfgValue("CONVERTION", "VC_OTHER_CFG");
 
 	InitMapConvertor("VC_TABLE", m_mTable);
 	InitMapConvertor("VC_PATH", m_mPath);
@@ -48,8 +49,6 @@ void PolicyTabConv::Init() throw(Exception)
 
 	m_pTabDB->SetIOChannel(io_channel);
 	m_pTabDB->SetDebPolicy(deb_policy);
-	m_pTabDB->SetGroupID(group_id);
-	m_pTabDB->SetOtherCfg(other_cfg);
 
 	m_pTabDB->Connect(db_name, svr_name);
 	m_pLog->Output("Connect database OK.");
@@ -62,34 +61,76 @@ void PolicyTabConv::Do() throw(Exception)
 	std::vector<ST_IOChannel> vc_io;
 	m_pTabDB->SelectIOChannel(vc_io);
 
-	int size = vc_io.size();
-	m_pLog->Output("IO_CHANNEL: size = %d", size);
-	for ( int i = 0; i < size; ++i )
-	{
-		ST_IOChannel& si = vc_io[i];
-		m_pLog->Output("%d) channel_id=%d, type_id=%d, extend=%s, group_id=%d", i+1, si.channel_id, si.type_id, si.type_ex, si.group_id);
-	}
-
 	std::vector<ST_DebPolicy> vc_deb;
 	m_pTabDB->SelectDebPolicy(vc_deb);
 
-	/*
-	int channel_id;
-	char table[64];
-	char path[256];
-	char commit_path[256];
-	int policy;
-	int chann_id1;
-	int chann_id2;
-	char other_cfg[64];
-	*/
-	size = vc_deb.size();
-	m_pLog->Output("DEB_POLICY: size = %d", size);
-	for ( int i = 0; i < size; ++i )
+	std::map<int, ST_IOChannel> m_io;
+	int vec_size = vc_io.size();
+	for ( int i = 0; i < vec_size; ++i )
 	{
-		ST_DebPolicy& sd = vc_deb[i];
-		m_pLog->Output("%d) channel_id=%d, table=%s, path=%s, commit_path=%s, policy=%d, channID1=%d, channID2=%d, other_cfg=%s", i+1, sd.channel_id, sd.table, sd.path, sd.commit_path, sd.policy, sd.chann_id1, sd.chann_id2, sd.other_cfg);
+		ST_IOChannel& st_io = vc_io[i];
+		m_io[st_io.channel_id] = st_io;
 	}
+
+	std::map<int, ST_DebPolicy> m_deb_val;
+	vec_size = vc_deb.size();
+	for ( int i = 0; i < vec_size; ++i )
+	{
+		ST_DebPolicy& st_deb = vc_deb[i];
+
+		if ( m_io.find(st_deb.channel_id) != m_io.end() )
+		{
+			m_deb_val[st_deb.channel_id] = st_deb;
+		}
+	}
+
+	std::map<int, ST_ONChannel> m_onc;
+	GetONChannel(vc_io, m_onc);
+
+	std::map<int, ST_DebPolicy> m_new_deb_upd;
+	std::map<int, ST_DebPolicy> m_new_deb_ins;
+	ST_DebPolicy new_st_deb;
+	std::map<int, ST_DebPolicy>::iterator it = m_deb_val.begin();
+	std::map<int, ST_ONChannel>::iterator on_it;
+	MS2_IT mit;
+	for ( ; it != m_deb_val.end(); ++it )
+	{
+		on_it = m_onc.find(it->first);
+		if ( on_it != m_onc.end() )
+		{
+			ST_DebPolicy& st_deb = it->second;
+			new_st_deb = st_deb;
+			new_st_deb.channel_id = on_it->second.new_channel_id;
+			strcpy(new_st_deb.other_cfg, m_sOtherCfg.c_str());
+
+			mit = m_mTable.find(new_st_deb.table);
+			if ( mit != m_mTable.end() )
+			{
+				strcpy(new_st_deb.table, mit->second.c_str());
+			}
+			mit = m_mPath.find(new_st_deb.path);
+			if ( mit != m_mPath.end() )
+			{
+				strcpy(new_st_deb.path, mit->second.c_str());
+			}
+			mit = m_mCommitPath.find(new_st_deb.commit_path);
+			if ( mit != m_mCommitPath.end() )
+			{
+				strcpy(new_st_deb.commit_path, mit->second.c_str());
+			}
+
+			if ( m_deb_val.find(new_st_deb.channel_id) != m_deb_val.end() )
+			{
+				m_new_deb_upd[new_st_deb.channel_id] = new_st_deb;
+			}
+			else
+			{
+				m_new_deb_ins[new_st_deb.channel_id] = new_st_deb;
+			}
+		}
+	}
+	m_pLog->Output("new update deb: size = %d", m_new_deb_upd.size());
+	m_pLog->Output("new insert deb: size = %d", m_new_deb_ins.size());
 
 	m_pTabDB->SqlFree();
 }
@@ -173,5 +214,52 @@ bool PolicyTabConv::SeparateStr(const std::string& src, std::string& left, std::
 		Helper::Upper(right);
 	}
 	return true;
+}
+
+void PolicyTabConv::GetONChannel(std::vector<ST_IOChannel>& vc_io, std::map<int, ST_ONChannel>& m_onc)
+{
+	m_onc.clear();
+
+	ST_ONChannel onc;
+	const int V_SIZE = vc_io.size();
+	for ( int i = 0; i < V_SIZE; ++i )
+	{
+		ST_IOChannel& io = vc_io[i];
+
+		if ( io.group_id != m_nGroupID )
+		{
+			onc.Init();
+
+			onc.type_id        = io.type_id;
+			onc.old_channel_id = io.channel_id;
+			strcpy(onc.type_ex, io.type_ex);
+
+			m_onc[onc.old_channel_id] = onc;
+		}
+	}
+
+	std::map<int, ST_ONChannel>::iterator it;
+	std::string l_ex;
+	std::string r_ex;
+	for ( int i = 0; i < V_SIZE; ++i )
+	{
+		ST_IOChannel& io = vc_io[i];
+
+		if ( io.group_id == m_nGroupID )
+		{
+			l_ex = io.type_ex;
+			for ( it = m_onc.begin(); it != m_onc.end(); ++it )
+			{
+				ST_ONChannel& onc = it->second;
+				r_ex = onc.type_ex;
+
+				if ( io.type_id == onc.type_id && l_ex == r_ex )
+				{
+					onc.new_channel_id = io.channel_id;
+					break;
+				}
+			}
+		}
+	}
 }
 
