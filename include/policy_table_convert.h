@@ -32,6 +32,8 @@ private:
 	void InitMapConvertor(const std::string& name, MAP_STR2& m) throw(Exception);
 	bool SeparateStr(const std::string& src, std::string& left, std::string& right, bool upper);
 	void GetONChannel(std::vector<ST_IOChannel>& vc_io, std::map<int, ST_ONChannel>& m_onc);
+	bool ReplacePath(std::string& path, MAP_STR2& m);
+	void Trans(std::map<int, ST_DebPolicy>& m, std::vector<ST_DebPolicy>& v);
 
 private:
 	Log*		m_pLog;

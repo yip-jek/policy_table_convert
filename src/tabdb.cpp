@@ -235,12 +235,89 @@ void TabDB::SelectDebPolicy(std::vector<ST_DebPolicy>& v_deb) throw(Exception)
 
 void TabDB::UpdateDebPolicy(std::vector<ST_DebPolicy>& v_deb) throw(Exception)
 {
-	std::vector<ST_DebPolicy>().swap(v_deb);
+	if ( v_deb.empty() )
+	{
+		return;
+	}
+
+	Begin();
+
+	std::string table;
+	std::string path;
+	std::string commit_path;
+	std::string other_cfg;
+
+	const int V_SIZE = v_deb.size();
+	for ( int i = 0; i < V_SIZE; ++i )
+	{
+		ST_DebPolicy& sd = v_deb[i];
+
+		table       = sd.table;
+		path        = sd.path;
+		commit_path = sd.commit_path;
+		other_cfg   = sd.other_cfg;
+
+		int col = 0;
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, (char*)table.c_str(), table.size());
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, (char*)path.c_str(), path.size());
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, (char*)commit_path.c_str(), commit_path.size());
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, sd.policy);
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, sd.chann_id1);
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, sd.chann_id2);
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, (char*)other_cfg.c_str(), other_cfg.size());
+		m_pDBI->dbi_set_param(m_pQueryUpd_deb, col++, sd.channel_id);
+
+		if ( m_pDBI->dbi_execute(m_pQueryUpd_deb) != 0 )
+		{
+			throw Exception(DB_EXECUTE_FAIL, "DBI execute [m_pQueryUpd_deb] failed: %s [FILE:%s, LINE:%d]", m_pDBI->dbi_error(), __FILE__, __LINE__);
+		}
+	}
+
+	Commit();
 }
 
 void TabDB::InsertDebPolicy(std::vector<ST_DebPolicy>& v_deb) throw(Exception)
 {
-	std::vector<ST_DebPolicy>().swap(v_deb);
+	if ( v_deb.empty() )
+	{
+		return;
+	}
+
+	Begin();
+
+	std::string table;
+	std::string path;
+	std::string commit_path;
+	std::string other_cfg;
+
+	const int V_SIZE = v_deb.size();
+	for ( int i = 0; i < V_SIZE; ++i )
+	{
+		ST_DebPolicy& sd = v_deb[i];
+
+		table       = sd.table;
+		path        = sd.path;
+		commit_path = sd.commit_path;
+		other_cfg   = sd.other_cfg;
+
+		// sql = "insert into " + m_sTabDebPolicy + " (INT_RAT_CHANNEL_ID, VC_TABLE, VC_PATH, VC_COMMITPATH, INT_POLICY, INT_DS_CHANNEL_ID1, INT_DS_CHANNEL_ID2, VC_OTHER_CFG) values(:v0, :v1, :v2, :v3, :v4, :v5, :v6, :v7)";
+		int col = 0;
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, sd.channel_id);
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, (char*)table.c_str(), table.size());
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, (char*)path.c_str(), path.size());
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, (char*)commit_path.c_str(), commit_path.size());
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, sd.policy);
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, sd.chann_id1);
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, sd.chann_id2);
+		m_pDBI->dbi_set_param(m_pQueryIns_deb, col++, (char*)other_cfg.c_str(), other_cfg.size());
+
+		if ( m_pDBI->dbi_execute(m_pQueryIns_deb) != 0 )
+		{
+			throw Exception(DB_EXECUTE_FAIL, "DBI execute [m_pQueryIns_deb] failed: %s [FILE:%s, LINE:%d]", m_pDBI->dbi_error(), __FILE__, __LINE__);
+		}
+	}
+
+	Commit();
 }
 
 void TabDB::Begin() throw(Exception)

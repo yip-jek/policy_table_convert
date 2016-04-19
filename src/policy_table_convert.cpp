@@ -60,9 +60,11 @@ void PolicyTabConv::Do() throw(Exception)
 
 	std::vector<ST_IOChannel> vc_io;
 	m_pTabDB->SelectIOChannel(vc_io);
+	m_pLog->Output("Select IO_CHANNEL size: %lu", vc_io.size());
 
 	std::vector<ST_DebPolicy> vc_deb;
 	m_pTabDB->SelectDebPolicy(vc_deb);
+	m_pLog->Output("Select DEB_STORE_POLICY size: %lu", vc_deb.size());
 
 	std::map<int, ST_IOChannel> m_io;
 	int vec_size = vc_io.size();
@@ -93,6 +95,7 @@ void PolicyTabConv::Do() throw(Exception)
 	std::map<int, ST_DebPolicy>::iterator it = m_deb_val.begin();
 	std::map<int, ST_ONChannel>::iterator on_it;
 	MS2_IT mit;
+	std::string str_tmp;
 	for ( ; it != m_deb_val.end(); ++it )
 	{
 		on_it = m_onc.find(it->first);
@@ -103,20 +106,25 @@ void PolicyTabConv::Do() throw(Exception)
 			new_st_deb.channel_id = on_it->second.new_channel_id;
 			strcpy(new_st_deb.other_cfg, m_sOtherCfg.c_str());
 
-			mit = m_mTable.find(new_st_deb.table);
+			str_tmp = new_st_deb.table;
+			Helper::Trim(str_tmp);
+			Helper::Upper(str_tmp);
+			mit = m_mTable.find(str_tmp);
 			if ( mit != m_mTable.end() )
 			{
 				strcpy(new_st_deb.table, mit->second.c_str());
 			}
-			mit = m_mPath.find(new_st_deb.path);
-			if ( mit != m_mPath.end() )
+
+			str_tmp = new_st_deb.path;
+			if ( ReplacePath(str_tmp, m_mPath) )
 			{
-				strcpy(new_st_deb.path, mit->second.c_str());
+				strcpy(new_st_deb.path, str_tmp.c_str());
 			}
-			mit = m_mCommitPath.find(new_st_deb.commit_path);
-			if ( mit != m_mCommitPath.end() )
+
+			str_tmp = new_st_deb.commit_path;
+			if ( ReplacePath(str_tmp, m_mCommitPath) )
 			{
-				strcpy(new_st_deb.commit_path, mit->second.c_str());
+				strcpy(new_st_deb.commit_path, str_tmp.c_str());
 			}
 
 			if ( m_deb_val.find(new_st_deb.channel_id) != m_deb_val.end() )
@@ -129,8 +137,14 @@ void PolicyTabConv::Do() throw(Exception)
 			}
 		}
 	}
-	m_pLog->Output("new update deb: size = %d", m_new_deb_upd.size());
-	m_pLog->Output("new insert deb: size = %d", m_new_deb_ins.size());
+
+	Trans(m_new_deb_upd, vc_deb);
+	m_pTabDB->UpdateDebPolicy(vc_deb);
+	m_pLog->Output("Update DEB_STORE_POLICY size: %lu", vc_deb.size());
+
+	Trans(m_new_deb_ins, vc_deb);
+	m_pTabDB->InsertDebPolicy(vc_deb);
+	m_pLog->Output("Insert DEB_STORE_POLICY size: %lu", vc_deb.size());
 
 	m_pTabDB->SqlFree();
 }
@@ -260,6 +274,32 @@ void PolicyTabConv::GetONChannel(std::vector<ST_IOChannel>& vc_io, std::map<int,
 				}
 			}
 		}
+	}
+}
+
+bool PolicyTabConv::ReplacePath(std::string& path, MAP_STR2& m)
+{
+	size_t pos = 0;
+	for ( MS2_IT it = m.begin(); it != m.end(); ++it )
+	{
+		pos = path.find(it->first);
+		if ( std::string::npos != pos )
+		{
+			path.replace(pos, it->first.size(), it->second);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void PolicyTabConv::Trans(std::map<int, ST_DebPolicy>& m, std::vector<ST_DebPolicy>& v)
+{
+	std::vector<ST_DebPolicy>().swap(v);
+
+	for ( std::map<int, ST_DebPolicy>::iterator it = m.begin(); it != m.end(); ++it )
+	{
+		v.push_back(it->second);
 	}
 }
 

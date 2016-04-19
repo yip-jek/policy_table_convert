@@ -22,6 +22,7 @@
 #define DB_COMMIT_FAIL                (-300008)
 #define DB_CURSOR_FAIL                (-300009)
 #define DB_FETCH_FAIL                 (-300010)
+#define DB_EXECUTE_FAIL               (-300011)
 
 #define PTC_INIT_FAIL                 (-400001)
 
